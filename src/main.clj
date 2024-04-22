@@ -1,5 +1,6 @@
 (ns main
   (:require [db]
+            [stats-page]
             [org.httpkit.server :as http]
             [cheshire.core :as json]
             [clojure.java.io :as io]
@@ -14,7 +15,10 @@
    :headers {"content-type" "application/json"}
    :body (json/encode payload)})
 
-(defn submit-listens [{:keys [payload listen-type]}]
+(defonce !listens (atom []))
+
+(defn submit-listens [{:as listen :keys [payload listen-type]}]
+  (swap! !listens conj listen)
   (case listen-type
     "playing_now" (json-response {:status "ok"})
     "single" (do (db/record-listens payload) (json-response {:status "ok"}))
@@ -25,7 +29,9 @@
 
 (defn app [req]
   (case (:uri req)
-    "/" {:status 200}
+    "/" {:status 200
+         :headers {"content-type" "text/html"}
+         :body (stats-page/page)}
     "/1/validate-token" (if-not (authorized? req)
                           {:status 403}
                           (json-response {:valid true

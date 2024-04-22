@@ -1,54 +1,101 @@
 (ns db
-  (:require [datalevin.core :as d]))
+  (:require [datalevin.core :as d])
+  (:import (java.time Instant)))
 
-(defonce conn (d/get-conn (System/getenv "GARDEN_STORAGE")))
+(defonce conn (d/get-conn (or (System/getenv "GARDEN_STORAGE") "data")))
 
-(defn listens []
-  (let [db (d/db conn)
-        res (d/q '[:find [?l ...]
-                   :where
-                   [?l :listened-at ?l-at]]
-                 db)]
-    (map (comp d/touch (partial d/entity db)) res)))
+(defprotocol Timestamp
+  (->timestamp [this]))
 
-(defn listens-in-range [start end]
-  (let [db (d/db conn)
-        res (d/q '[:find [?l ...]
-                   :in $ ?start ?end
-                   :where
-                   [?l :listened-at ?l-at]
-                   [(>= ?l-at ?start)]
-                   [(>= ?end ?l-at)]]
-                 db
-                 start
-                 end)]
-    (map (comp d/touch (partial d/entity db)) res)))
+(extend-protocol Timestamp
+  java.util.Date
+  (->timestamp [this] (.getEpochSecond (.toInstant this)))
+  java.time.LocalDate
+  (->timestamp [this] (.getEpochSecond (.toInstant this)))
+  java.time.Instant
+  (->timestamp [this] (.getEpochSecond this))
+  java.lang.String
+  (->timestamp [this] (.getEpochSecond (Instant/parse this)))
+  java.lang.Long
+  (->timestamp [this] this))
 
-(defn track-counts []
-  (->> (d/q '[:find ?recording-mbid (count ?l)
-              :keys name listens
-              :where [?l :recording-mbid ?recording-mbid]]
-            (d/db conn))
-       (sort-by :listens)
-       reverse))
+(defn listens
+  ([] (listens nil))
+  ([start] (listens start nil))
+  ([start end]
+   (let [start (some-> start ->timestamp)
+         end (some-> end ->timestamp)
+         db (d/db conn)
+         res (d/q (cond-> `[:find [?l ...]
+                            :where
+                            [?l :listened-at ?l-at]]
+                    start (conj `[(>= ?l-at ~start)])
+                    end (conj `[(>= ~end ?l-at)]))
+                  db)]
+     (map (comp d/touch (partial d/entity db)) res))))
 
-(defn album-counts []
-  (->> (d/q '[:find ?release-mbid (count ?l) .
-              :keys name listens
-              :where [?l :release-mbid ?release-mbid]]
-            (d/db conn))
-       (sort-by :listens)
-       reverse))
+(defn track-counts
+  ([] (track-counts nil))
+  ([start] (track-counts start nil))
+  ([start end]
+   (let [start (some-> start ->timestamp)
+         end (some-> end ->timestamp)
+         db (d/db conn)]
+     (->> (d/q (cond-> `[:find ?recording-mbid (count ?l)
+                         :where
+                         [?l :recording-mbid ?recording-mbid]
+                         [?l :listened-at ?l-at]]
+                 start (conj `[(>= ?l-at ~start)])
+                 end (conj `[(>= ~end ?l-at)]))
+               db)
+          (map (fn [[recording-mbid count]]
+                 (let [listen-id (d/q '[:find ?l .
+                                        :in $ ?recording-mbid
+                                        :where [?l :recording-mbid ?recording-mbid]]
+                                      db
+                                      recording-mbid)]
+                   {:listen (d/entity db listen-id)
+                    :count count})))
+          (sort-by :count)
+          reverse))))
+
+(defn album-counts
+  ([] (album-counts nil))
+  ([start] (album-counts start nil))
+  ([start end] (let [start (some-> start ->timestamp)
+                     end (some-> end ->timestamp)
+                     db (d/db conn)
+                     counts (d/q (cond-> `[:find ?release-mbid (count ?l)
+                                           :where
+                                           [?l :release-mbid ?release-mbid]
+                                           [?l :listened-at ?l-at]]
+                                   start (conj `[(>= ?l-at ~start)])
+                                   end (conj `[(>= ~end ?l-at)]))
+                                 db)]
+                 ;;HACK get the first listen for an album, because the rendering expects it that way
+                 (->> counts
+                      (map (fn [[release-mbid count]]
+                             (let [listen-id (d/q '[:find ?l .
+                                                    :in $ ?release-mbid
+                                                    :where [?l :release-mbid ?release-mbid]]
+                                                  db
+                                                  release-mbid)]
+                               {:listen (d/entity db listen-id)
+                                :count count})))
+                      (sort-by :count)
+                      reverse))))
 
 (defn artist-counts []
   (->> (d/q '[:find ?artist-name (count ?l)
-              :keys name listens
               :where [?l :artist-name ?artist-name]]
             (d/db conn))
-       (sort-by :listens)
+       (map (fn [[artist-name count]] {:artist-name artist-name
+                                       :count count}))
+       (sort-by :count)
        reverse))
 
 (defn transform [{:keys [listened-at track-metadata]}]
+  ;;TODO store LocalDateTime, otherwise analysis like hour of day is meaningless
   (let [now (.getEpochSecond (java.time.Instant/now))
         {:keys [additional-info]} track-metadata
         additional-info-keys [:recording-mbid :release-mbid :artist-mbids]
