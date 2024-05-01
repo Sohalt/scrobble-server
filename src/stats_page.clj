@@ -37,4 +37,22 @@
      (->> (db/listens)
           (shuffle)
           (take 10)
+          (viz/song-grid))
+     [:h2.text-3xl "Top 10 albums of the week"]
+     (->> (db/album-counts (time/start-of-week))
+          (take 10)
+          (map :listen)
+          (map #(dissoc % :track-name :recording-mbid))
+          (viz/song-grid))
+     [:h2.text-3xl "Top 10 albums of the month"]
+     (->> (db/album-counts (time/start-of-month))
+          (take 10)
+          (map :listen)
+          (map #(dissoc % :track-name :recording-mbid))
+          (viz/song-grid))
+     [:h2.text-3xl  "Top 10 albums of the year"]
+     (->> (db/album-counts (time/start-of-year))
+          (take 10)
+          (map :listen)
+          (map #(dissoc % :track-name :recording-mbid))
           (viz/song-grid))]]))
