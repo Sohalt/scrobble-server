@@ -45,7 +45,7 @@
 
 (defn start! [opts]
   (if (nil? @!server)
-    (let [s (http/run-server #'app (assoc opts :legacy-return-value? false))]
+    (let [s (http/run-server #'app (merge {:port 7778} opts {:legacy-return-value? false}))]
       (println (format "Started server on port %s" (http/server-port s)))
       (reset! !server s))
     (println "Already running")))

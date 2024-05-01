@@ -12,6 +12,5 @@
         }
  :aliases
  {:nextjournal/garden {:exec-fn main/start!
-                       :exec-args {:port 7777}
                        :jvm-opts ["--add-opens=java.base/java.nio=ALL-UNNAMED"
                                   "--add-opens=java.base/sun.nio.ch=ALL-UNNAMED"]}}}
