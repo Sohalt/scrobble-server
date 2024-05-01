@@ -55,4 +55,19 @@
           (take 10)
           (map :listen)
           (map #(dissoc % :track-name :recording-mbid))
-          (viz/song-grid))]]))
+          (viz/song-grid))
+     [:h2.text-3xl "Top 10 artists of the week"]
+     (->> (db/artist-counts (time/start-of-week))
+          (take 10)
+          (map :artist-name)
+          (viz/artist-list))
+     [:h2.text-3xl "Top 10 artists of the month"]
+     (->> (db/artist-counts (time/start-of-month))
+          (take 10)
+          (map :artist-name)
+          (viz/artist-list))
+     [:h2.text-3xl  "Top 10 artists of the year"]
+     (->> (db/artist-counts (time/start-of-year))
+          (take 10)
+          (map :artist-name)
+          (viz/artist-list))]]))

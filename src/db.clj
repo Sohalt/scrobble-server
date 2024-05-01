@@ -85,14 +85,23 @@
                       (sort-by :count)
                       reverse))))
 
-(defn artist-counts []
-  (->> (d/q '[:find ?artist-name (count ?l)
-              :where [?l :artist-name ?artist-name]]
-            (d/db conn))
-       (map (fn [[artist-name count]] {:artist-name artist-name
-                                       :count count}))
-       (sort-by :count)
-       reverse))
+(defn artist-counts
+  ([] (artist-counts nil))
+  ([start] (artist-counts start nil))
+  ([start end]
+   (let [start (some-> start ->timestamp)
+         end (some-> end ->timestamp)]
+     (->> (d/q (cond-> `[:find ?artist-name (count ?l)
+                         :where
+                         [?l :artist-name ?artist-name]
+                         [?l :listened-at ?l-at]]
+                 start (conj `[(>= ?l-at ~start)])
+                 end (conj `[(>= ~end ?l-at)]))
+               (d/db conn))
+          (map (fn [[artist-name count]] {:artist-name artist-name
+                                          :count count}))
+          (sort-by :count)
+          reverse))))
 
 (defn transform [{:keys [listened-at track-metadata]}]
   ;;TODO store LocalDateTime, otherwise analysis like hour of day is meaningless
