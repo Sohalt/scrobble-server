@@ -133,17 +133,23 @@
        :artist-name (artist-name listen)}
       remove-nil-vals))
 
+(defn release-url [listen]
+  (when-let [release-id (:release-mbid listen)]
+    (str "https://musicbrainz.org/release/" release-id)))
+
 (defn song-tile [listen]
-  (let [{:keys [track-name album-name artist-name year]} (listen-info listen)]
-    [:div.w-48.h-48.flex.flex-col.flex-none.relative.container
-     (cover-art-img listen)
-     [:div.w-full.bg-black.p-5.text-center.z-10.opacity-70.absolute.bottom-0
-      [:span.font-sans.text-white.text-opacity-100.drop-shadow-md
-       {:style {"filter" "drop-shadow(0 1px 1px rgba(0,0,0,0.75)"}}
-       (str (when track-name (str track-name " — "))
-            artist-name " — "
-            album-name
-            (when year (str " (" year ")")))]]]))
+  (let [release-url (release-url listen)
+        {:keys [track-name album-name artist-name year]} (listen-info listen)]
+    (cond->> [:div.w-48.h-48.flex.flex-col.flex-none.relative
+              (cover-art-img listen)
+              [:div.w-full.bg-black.p-5.text-center.z-10.opacity-70.absolute.bottom-0.group-hover:opacity-90
+               [:span.font-sans.text-white.text-opacity-100.drop-shadow-md.group-hover:underline
+                {:style {"filter" "drop-shadow(0 1px 1px rgba(0,0,0,0.75)"}}
+                (str (when track-name (str track-name " — "))
+                     artist-name " — "
+                     album-name
+                     (when year (str " (" year ")")))]]]
+      release-url (conj [:a.group {:href release-url}]))))
 
 (defn song-list-item [listen]
   (let [{:keys [track-name album-name artist-name year]} (listen-info listen)]
