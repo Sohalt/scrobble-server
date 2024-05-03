@@ -51,9 +51,6 @@
                :name)
       (:artist-name listen)))
 
-(defn cover-art-url [release-mbid]
-  (str "https://coverartarchive.org/release/" release-mbid "/front"))
-
 (defn release-artwork-info [release-mbid]
   (->> (query-json (str "https://coverartarchive.org/release/" release-mbid))
        :images
