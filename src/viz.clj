@@ -60,12 +60,13 @@
        (filter :front)
        first))
 
-(defn cover-art-thumbnail-url
-  ([release-mbid] (cover-art-thumbnail-url release-mbid :small))
-  ([release-mbid size]
-   (->> (release-artwork-info release-mbid)
-        :thumbnails
-        size)))
+(defn cover-art-url
+  ([cover-art-info] (cover-art-url cover-art-info :small))
+  ([cover-art-info size]
+   (or (some->> cover-art-info
+                :thumbnails
+                size)
+       (:image cover-art-info))))
 
 (def placeholder-img [:div.bg-slate-300.w-48.h-48])
 
@@ -106,12 +107,13 @@
            first))
 
 (defn cover-art-img [listen]
-  (let [release (or (some->> listen
-                             :release-mbid
-                             (lookup "release"))
-                    (guess-release-for-listen listen))]
-    (if (release-has-artwork? release)
-      [:img {:src (cover-art-thumbnail-url (:id release))}]
+  (let [release (release listen)
+        artwork-info (if (release-has-artwork? release)
+                       (release-artwork-info (:id release))
+                       (let [rg (release-group listen)]
+                         (release-group-artwork-info rg)))]
+    (if artwork-info
+      [:img {:src (cover-art-url artwork-info)}]
       placeholder-img)))
 
 (defn normalize-year [y]
