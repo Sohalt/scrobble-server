@@ -128,6 +128,19 @@
             :y {:field :count
                 :type :quantitative}}}
 
+;; ## listens by year
+
+^{::clerk/viewer clerk/vl}
+{:data {:values (->> listens
+                     (group-by (fn [l] (some->> l viz/year)))
+                     (map (fn [[y l]] {:year y :count (count l)}))
+                     (sort-by :year))}
+ :mark :bar
+ :encoding {:x {:field :year
+                :type :nominal}
+            :y {:field :count
+                :type :quantitative}}}
+
 ;; ## Listens by Genre
 
 (defn genre [listen]
@@ -143,7 +156,6 @@
                     :type :nominal}
             :theta {:field :count
                     :type :quantitative}}}
-
 ;; ## Listens without album artwork
 
 ^{::clerk/no-cache true}
