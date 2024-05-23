@@ -3,7 +3,7 @@
             [stats-page]
             [org.httpkit.server :as http]
             [cheshire.core :as json]
-            [clojure.java.io :as io]
+            [ring.middleware.json :refer [wrap-json-body]]
             [clojure.string :as str]))
 
 (defn authorized? [req]
@@ -38,14 +38,17 @@
                                           :user_name "_"}))
     "/1/submit-listens" (if-not (authorized? req)
                           {:status 403}
-                          (submit-listens (json/parse-stream (io/reader (:body req)) (comp keyword snake->kebab))))
+                          (submit-listens (:body req)))
     {:status 404}))
+
+(def app-wrapped (-> #'app
+                     (wrap-json-body {:key-fn (comp keyword snake->kebab)})))
 
 (defonce !server (atom nil))
 
 (defn start! [opts]
   (if (nil? @!server)
-    (let [s (http/run-server #'app (merge {:port 7778} opts {:legacy-return-value? false}))]
+    (let [s (http/run-server #'app-wrapped (merge {:port 7778} opts {:legacy-return-value? false}))]
       (println (format "Started server on port %s" (http/server-port s)))
       (reset! !server s))
     (println "Already running")))

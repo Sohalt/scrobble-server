@@ -4,6 +4,7 @@
         cider/cider-nrepl {:mvn/version "0.45.0"}
         cheshire/cheshire {:mvn/version "5.12.0"}
         ring/ring-codec {:mvn/version "1.2.0"}
+        ring/ring-json {:mvn/version "0.5.1"}
         datalevin/datalevin {:mvn/version "0.9.5"}
         com.cognitect/transit-clj {:mvn/version "1.0.329"}
         io.github.nextjournal/clerk {:sha "58c7b75c91585b9947f323b753e07cecdeec2a30"}
