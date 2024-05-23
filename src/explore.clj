@@ -128,7 +128,7 @@
             :y {:field :count
                 :type :quantitative}}}
 
-;; ## listens by year
+;; ## Listens by Year
 
 ^{::clerk/viewer clerk/vl}
 {:data {:values (->> listens
@@ -156,32 +156,3 @@
                     :type :nominal}
             :theta {:field :count
                     :type :quantitative}}}
-;; ## Listens without album artwork
-
-^{::clerk/no-cache true}
-(def listens-without-artwork (->> listens
-                                  (filter (comp not viz/has-artwork?))))
-
-(count listens-without-artwork)
-
-(def listens-without-release-id (->> listens
-                                     (filter (comp not some? :release-mbid ))))
-
-(count listens-without-release-id)
-
-(->> listens-without-artwork
-     (into #{} (filter (comp some? :release-mbid) ))
-     first)
-
-^{::clerk/viewer clerk/html}
-(->> listens-without-artwork
-     (into #{} (comp (filter (comp some? :release-mbid) )
-                     (map (fn [{:keys [release-mbid artist-name release-name]}]
-                            [:li [:a {:href (str "https://musicbrainz.org/release/" release-mbid)}
-                                  (str artist-name "-" release-name )]]))))
-     (concat [:ul])
-     (vec))
-
-(def releases (map (fn [l] (viz/lookup "release" (:release-mbid l))) listens))
-
-(def freq (frequencies (map :status releases)))
