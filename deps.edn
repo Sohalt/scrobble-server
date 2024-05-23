@@ -9,7 +9,7 @@
         io.github.nextjournal/clerk {:sha "58c7b75c91585b9947f323b753e07cecdeec2a30"}
         org.babashka/http-client {:mvn/version "0.4.17"}
         io.github.escherize/huff {:mvn/version "0.2.12"}
-        }
+        io.github.clojure/data.alpha.replicant-server {:git/tag "v2023.05.02.01" :git/sha "947d8a8"}}
  :aliases
  {:nextjournal/garden {:exec-fn main/start!
                        :jvm-opts ["--add-opens=java.base/java.nio=ALL-UNNAMED"
