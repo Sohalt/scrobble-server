@@ -136,19 +136,40 @@
   (when-let [release-id (:release-mbid listen)]
     (str "https://musicbrainz.org/release/" release-id)))
 
+(defn tile [{:keys [background-image
+                    main-content
+                    extra-content
+                    link]}]
+  (cond->> [:div.w-48.h-48.flex.flex-col.flex-none.relative.group
+            background-image
+            [:div.w-full.bg-black.p-5.text-center.z-10.opacity-70.absolute.bottom-0.group-hover:opacity-90.flex.flex-col.transition
+             [:span.font-sans.text-white.text-opacity-100.drop-shadow-md.mb-2
+              {:style {"filter" "drop-shadow(0 1px 1px rgba(0,0,0,0.75)"}
+               :class [(when link "group-hover:underline")]}
+              main-content]
+             [:span.font-sans.text-white.text-opacity-100.drop-shadow-md.hidden.group-hover:inline.text-sm.text-slate-100
+              {:style {"filter" "drop-shadow(0 1px 1px rgba(0,0,0,0.75)"}
+               :class [(when link "group-hover:underline")]}
+              extra-content]]]
+    link (conj [:a {:href link}])))
+
 (defn song-tile [listen]
   (let [release-url (release-url listen)
         {:keys [track-name album-name artist-name year]} (listen-info listen)]
-    (cond->> [:div.w-48.h-48.flex.flex-col.flex-none.relative
-              (cover-art-img listen)
-              [:div.w-full.bg-black.p-5.text-center.z-10.opacity-70.absolute.bottom-0.group-hover:opacity-90
-               [:span.font-sans.text-white.text-opacity-100.drop-shadow-md.group-hover:underline
-                {:style {"filter" "drop-shadow(0 1px 1px rgba(0,0,0,0.75)"}}
-                (str (when track-name (str track-name " — "))
-                     artist-name " — "
-                     album-name
-                     (when year (str " (" year ")")))]]]
-      release-url (conj [:a.group {:href release-url}]))))
+    (tile {:background-image (cover-art-img listen)
+           :main-content track-name
+           :extra-content (str album-name (when year (str " (" year ")"))
+                               " — "
+                               artist-name)
+           :link release-url})))
+
+(defn album-tile [listen]
+  (let [release-url (release-url listen)
+        {:keys [album-name artist-name year]} (listen-info listen)]
+    (tile {:background-image (cover-art-img listen)
+           :main-content (str album-name (when year (str " (" year ")")))
+           :extra-content artist-name
+           :link release-url})))
 
 (defn song-list-item [listen]
   (let [{:keys [track-name album-name artist-name year]} (listen-info listen)]
@@ -177,6 +198,9 @@
 
 (defn song-grid [songs]
   (into [:div.flex.flex-row.flex-wrap.gap-1] (map song-tile songs)))
+
+(defn album-grid [songs]
+  (into [:div.flex.flex-row.flex-wrap.gap-1] (map album-tile songs)))
 
 (defn song-list [songs]
   (into [:div.flex.flex-col.gap-1] (map song-list-item songs)))
