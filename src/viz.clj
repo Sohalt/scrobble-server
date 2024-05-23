@@ -4,7 +4,8 @@
             [babashka.http-client :as http]
             [cheshire.core :as json]
             [ring.util.codec :as codec]
-            [clojure.java.io :as io])
+            [clojure.java.io :as io]
+            [clojure.string :as str])
   (:import (java.time.format DateTimeParseException)))
 
 (def api-root "https://musicbrainz.org/ws/2/")
@@ -113,9 +114,11 @@
       [:img {:src (cover-art-url artwork-info)}]
       placeholder-img)))
 
-(defn normalize-year [y]
-  (try (.getYear (java.time.LocalDate/parse y))
-       (catch DateTimeParseException _ y)))
+(defn normalize-year [date]
+  (try (.getYear (java.time.LocalDate/parse date))
+       (catch DateTimeParseException _
+         (when-let [year (second (re-matches #"(\d{4})-\d{1,2}" date))]
+           (Integer/parseInt year)))))
 
 (defn year [listen]
   (some->> (lookup "release" (:release-mbid listen))
