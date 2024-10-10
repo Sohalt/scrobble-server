@@ -4,18 +4,19 @@
             [babashka.http-client :as http]
             [cheshire.core :as json]
             [ring.util.codec :as codec]
-            [clojure.java.io :as io]
-            [clojure.string :as str])
+            [clojure.java.io :as io])
   (:import (java.time.format DateTimeParseException)))
 
 (def api-root "https://musicbrainz.org/ws/2/")
 
 (defn query-json' [url]
   (let [{:as res :keys [status body headers]}
-        (http/get url {:as :stream
-                       :headers {"Accept" "application/json"
-                                 "User-Agent" "clerk-viz/0.0.1 (musicbrainz@sohalt.net)"}
-                       :throw false})]
+        (try (http/get url {:as :stream
+                        :headers {"Accept" "application/json"
+                                  "User-Agent" "clerk-viz/0.0.1 (musicbrainz@sohalt.net)"}
+                        :throw false})
+             (catch Exception e
+               (prn e)))]
     (if (= status 200)
       (json/parse-stream (io/reader body) keyword)
       (if-let [wait (get headers "retry-after")]
